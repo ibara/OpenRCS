@@ -1,4 +1,4 @@
-/*	$OpenBSD: co.c,v 1.124 2019/01/09 18:00:45 joris Exp $	*/
+/*	$OpenBSD: co.c,v 1.126 2019/06/28 13:35:03 deraadt Exp $	*/
 /*
  * Copyright (c) 2005 Joris Vink <joris@openbsd.org>
  * All rights reserved.
@@ -394,6 +394,12 @@ checkout_rev(RCSFILE *file, RCSNUM *frev, const char *dst, int flags,
 			    !(flags & CO_REVERT))
 				(void)fprintf(stderr, " (unlocked)\n");
 		}
+	} else {
+		if (file->rf_ndelta != 0) {
+			if (!(flags & QUIET) && !(flags & NEWFILE) &&
+			    !(flags & CO_REVERT))
+				(void)fprintf(stderr, "\n");
+		}
 	}
 
 	if ((flags & (PIPEOUT|FORCE)) == 0 && stat(dst, &st) != -1) {
@@ -444,11 +450,6 @@ checkout_rev(RCSFILE *file, RCSNUM *frev, const char *dst, int flags,
 	    ((flags & CO_LOCK) || (flags & CO_UNLOCK))) {
 		(void)fprintf(stderr, "no revisions, so nothing can be %s\n",
 		    (flags & CO_LOCK) ? "locked" : "unlocked");
-	} else if (file->rf_ndelta != 0) {
-		/* XXX - Not a good way to detect if a newline is needed. */
-		if (!(flags & QUIET) && !(flags & NEWFILE) &&
-		    !(flags & CO_REVERT))
-			(void)fprintf(stderr, "\n");
 	}
 
 	if (flags & CO_LOCK) {
@@ -468,7 +469,7 @@ checkout_rev(RCSFILE *file, RCSNUM *frev, const char *dst, int flags,
 	else {
 		(void)unlink(dst);
 
-		if ((fd = open(dst, O_WRONLY|O_CREAT|O_TRUNC, mode)) < 0)
+		if ((fd = open(dst, O_WRONLY|O_CREAT|O_TRUNC, mode)) == -1)
 			err(1, "%s", dst);
 
 		if (buf_write_fd(bp, fd) < 0) {
@@ -486,7 +487,7 @@ checkout_rev(RCSFILE *file, RCSNUM *frev, const char *dst, int flags,
 			memset(&tv, 0, sizeof(tv));
 			tv[0].tv_sec = rcs_rev_getdate(file, rev);
 			tv[1].tv_sec = tv[0].tv_sec;
-			if (futimes(fd, (const struct timeval *)&tv) < 0)
+			if (futimes(fd, (const struct timeval *)&tv) == -1)
 				warn("utimes");
 		}
 

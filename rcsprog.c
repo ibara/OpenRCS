@@ -128,7 +128,7 @@ main(int argc, char **argv)
 	char **cmd_argv;
 	int ret, cmd_argc;
 
-#ifdef __OpenBSD__
+#ifdef HAVE_PLEDGE
 	if (pledge("stdio rpath wpath cpath fattr flock getpw", NULL) == -1)
 		err(2, "pledge");
 #endif
